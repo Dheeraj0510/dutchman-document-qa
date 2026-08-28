@@ -1,0 +1,199 @@
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Document Q&A</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    label {
+      display: block;
+      margin: 16px 0 6px;
+      font-weight: bold;
+    }
+
+    input,
+    textarea,
+    button {
+      box-sizing: border-box;
+      font: inherit;
+      padding: 8px;
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      width: auto;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+
+    #status {
+      white-space: pre-wrap;
+      background: #eee;
+      border: 1px solid #aaa;
+      padding: 10px;
+      margin-top: 20px;
+      min-height: 24px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Document Q&amp;A</h1>
+
+  <label for="file">Document</label>
+  <input
+    id="file"
+    type="file"
+    accept=".txt,.cpp,text/plain,text/x-c++src"
+  >
+
+  <button id="upload" type="button">
+    Upload document
+  </button>
+
+  <label for="question">Question</label>
+
+  <textarea
+    id="question"
+    placeholder="Ask something about the uploaded document"
+  ></textarea>
+
+  <button id="ask" type="button">
+    Ask
+  </button>
+
+  <pre id="status">No document uploaded.</pre>
+
+  <script>
+    const fileInput = document.querySelector('#file');
+    const questionInput = document.querySelector('#question');
+    const status = document.querySelector('#status');
+
+    let docId = null;
+
+    function show(value) {
+      status.textContent =
+        typeof value === 'string'
+          ? value
+          : JSON.stringify(value, null, 2);
+    }
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, options);
+
+      const data = await response
+        .json()
+        .catch(() => ({
+          error: 'Server returned invalid JSON.'
+        }));
+
+      if (!response.ok) {
+        throw new Error(
+          `${response.status}: ${data.error || 'Request failed.'}`
+        );
+      }
+
+      return data;
+    }
+
+    // -------------------------
+    // UPLOAD DOCUMENT
+    // -------------------------
+
+    document.querySelector('#upload').addEventListener(
+      'click',
+      async () => {
+
+        const file = fileInput.files[0];
+
+        if (!file) {
+          return show('Choose a document first.');
+        }
+
+        const form = new FormData();
+
+        form.append('file', file);
+
+        try {
+          show('Uploading...');
+
+          const result = await request('/upload', {
+            method: 'POST',
+            body: form
+          });
+
+          docId = result.id;
+
+          show(
+            `Uploaded: ${result.filename}\n` +
+            `Document ID: ${docId}\n` +
+            `Characters: ${result.characters}`
+          );
+
+        } catch (error) {
+          show(error.message);
+        }
+      }
+    );
+
+    // -------------------------
+    // ASK QUESTION
+    // -------------------------
+
+    document.querySelector('#ask').addEventListener(
+      'click',
+      async () => {
+
+        if (!docId) {
+          return show('Upload a document first.');
+        }
+
+        const question = questionInput.value.trim();
+
+        if (!question) {
+          return show('Enter a question first.');
+        }
+
+        try {
+          show('Thinking...');
+
+          const result = await request('/ask', {
+            method: 'POST',
+
+            headers: {
+              'content-type': 'application/json'
+            },
+
+            body: JSON.stringify({
+              question,
+              docId
+            })
+          });
+
+          show(result.answer);
+
+        } catch (error) {
+          show(error.message);
+        }
+      }
+    );
+  </script>
+
+</body>
+</html>
+```
