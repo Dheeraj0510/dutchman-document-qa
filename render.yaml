@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: doc-app-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        value: openai
+      - key: AI_MODEL
+        value: gpt-4o-mini
+      - key: AI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_COLLECTION
+        value: document_chunks
